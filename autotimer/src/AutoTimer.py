@@ -119,7 +119,6 @@ class AutoTimer:
 		# Initialize
 		self.timers = []
 		self.configMtime = -1
-		self.nextTimerId = 1
 		self.defaultTimer = preferredAutoTimerComponent(
 			0,		# Id
 			"",		# Name
@@ -191,9 +190,6 @@ class AutoTimer:
 			0,
 			self.defaultTimer
 		)
-		self.nextTimerId = int(configuration.get("nextTimerId", "0"))
-		if not self.nextTimerId:
-			self.nextTimerId = len(self.timers) + 1
 
 	def getXml(self, webif=True):
 		return buildConfig(self.defaultTimer, self.timers, webif)
@@ -241,9 +237,9 @@ class AutoTimer:
 		return [(x,) for x in lst]
 
 	def getUniqueId(self):
-		newId = self.nextTimerId
-		self.nextTimerId += 1
-		return newId
+		import operator
+		lastTimerId = self.timers and max(self.timers, key=operator.attrgetter('id')).id or 0
+		return lastTimerId + 1
 
 	def remove(self, uniqueId):
 		idx = 0

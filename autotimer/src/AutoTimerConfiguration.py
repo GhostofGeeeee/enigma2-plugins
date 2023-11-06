@@ -537,7 +537,7 @@ def parseConfigOld(configuration, list, uniqueTimerId=0):
 
 def buildConfig(defaultTimer, timers, webif=False):
 	# Generate List in RAM
-	list = ['<?xml version="1.0" ?>\n<autotimer version="', CURRENT_CONFIG_VERSION, '" nextTimerId="', "1", '">\n\n']
+	list = ['<?xml version="1.0" ?>\n<autotimer version="', CURRENT_CONFIG_VERSION, '">\n\n']
 	append = list.append
 	extend = list.extend
 	defaultEncoding = getDefaultEncoding()
@@ -684,7 +684,7 @@ def buildConfig(defaultTimer, timers, webif=False):
 			extend(('  <tag>', stringToXML(tag), '</tag>\n'))
 
 	# Keep the list clean
-	if len(list) == 7:
+	if len(list) == 5:
 		list.pop()  # >
 		list.pop()  # <defaults
 	else:
