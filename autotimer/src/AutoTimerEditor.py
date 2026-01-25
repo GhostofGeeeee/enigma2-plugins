@@ -255,21 +255,27 @@ class AutoTimerEditorBase:
 		# Services have their own Screen
 
 		# Offset
-		if timer.hasOffset():
-			default = True
-			begin = timer.getOffsetBegin()
-			end = timer.getOffsetEnd()
+		if hasattr(config.recording, "zap_margin_before"):  # Add support for new timer margins by openatv
+			zap = self.justplay.value == "zap"
+			self.offsetbegindefault = NoSave(ConfigNumber(default=timer.getOffsetBegin() if timer.hasOffset() and not zap else config.recording.margin_before.value))
+			self.offsetbeginzap = NoSave(ConfigNumber(default=timer.getOffsetBegin() if timer.hasOffset() and zap else config.recording.zap_margin_before.value))
+			self.offsetbegin = self.offsetbegindefault if not zap else self.offsetbeginzap
+			self.offsetenddefault = NoSave(ConfigNumber(default=timer.getOffsetEnd() if timer.hasOffset() and not zap else config.recording.margin_after.value))
+			self.offsetendzap = NoSave(ConfigNumber(default=timer.getOffsetEnd() if timer.hasOffset() and zap else config.recording.zap_margin_after.value))
+			self.offsetend = self.offsetenddefault if not zap else self.offsetendzap
+			self.offset = NoSave(ConfigEnableDisable(default=timer.hasOffset()))
 		else:
-			default = False
-			if hasattr(config.recording, "zap_margin_before"):  # add support for new timer margins by openatv
-				begin = getattr(config.recording, "zap_margin_before" if timer.justplay else "margin_before").value
-				end = getattr(config.recording, "zap_margin_after" if timer.justplay else "margin_after").value
+			if timer.hasOffset():
+				default = True
+				begin = timer.getOffsetBegin()
+				end = timer.getOffsetEnd()
 			else:
+				default = False
 				begin = 5
 				end = 5
-		self.offset = NoSave(ConfigEnableDisable(default=default))
-		self.offsetbegin = NoSave(ConfigNumber(default=begin))
-		self.offsetend = NoSave(ConfigNumber(default=end))
+			self.offset = NoSave(ConfigEnableDisable(default=default))
+			self.offsetbegin = NoSave(ConfigNumber(default=begin))
+			self.offsetend = NoSave(ConfigNumber(default=end))
 
 		# AfterEvent
 		if timer.hasAfterEvent():
@@ -469,7 +475,6 @@ class AutoTimerEditor(ConfigListScreen, Screen, AutoTimerEditorBase):
 		# Summary
 		self.setup_title = _("AutoTimer Editor")
 		self.onChangedEntry = []
-		self.initEndTime = True
 
 		# We might need to change shown items, so add some notifiers
 		self.justplay.addNotifier(self.reloadList, initial_call=False)
@@ -559,21 +564,6 @@ class AutoTimerEditor(ConfigListScreen, Screen, AutoTimerEditorBase):
 			self["help"].text = self.helpDict.get(cur[1], "")
 
 	def changed(self):
-		# add support for new timer margins by openatv
-		if hasattr(config.recording, "zap_margin_before"):
-			zap = self.justplay.value == "zap"
-
-			def reset():
-				self.offsetbegin.value = getattr(config.recording, "zap_margin_before" if zap else "margin_before").value
-				self.offsetend.value = getattr(config.recording, "zap_margin_after" if zap else "margin_after").value
-
-			if self.initEndTime and self["config"].getCurrent()[1] == self.justplay and zap:
-				self.setEndtime.value = getattr(config.recording, "zap_has_endtime").value
-				self.initEndTime = False
-				reset()
-			elif self["config"].getCurrent()[1] == self.offset and self.offset.value:
-				reset()
-
 		for x in self.onChangedEntry:
 			try:
 				x()
@@ -674,8 +664,12 @@ class AutoTimerEditor(ConfigListScreen, Screen, AutoTimerEditorBase):
 
 		# Only allow editing offsets when it's enabled
 		if self.offset.value:
+			zap = self.justplay.value == "zap"
+			if hasattr(config.recording, "zap_margin_before"):  # Add support for new timer margins by openatv
+				self.offsetbegin = self.offsetbegindefault if not zap else self.offsetbeginzap
+				self.offsetend = self.offsetenddefault if not zap else self.offsetendzap
 			list.append(getConfigListEntry(_("Offset before recording (in m)"), self.offsetbegin))
-			if not self.justplay.value == "zap" or self.justplay.value == "zap" and self.setEndtime.value:
+			if not zap or self.setEndtime.value:
 				list.append(getConfigListEntry(_("Offset after recording (in m)"), self.offsetend))
 
 		list.append(getConfigListEntry(_("Set maximum duration"), self.duration))

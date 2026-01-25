@@ -6,6 +6,7 @@ from __future__ import print_function
 from . import _, removeBad
 
 from .AutoTimerComponent import preferredAutoTimerComponent, getDefaultEncoding
+from Components.config import config
 from RecordTimer import AFTEREVENT
 from Tools.XMLTools import stringToXML
 from ServiceReference import ServiceReference
@@ -172,7 +173,10 @@ def parseEntry(element, baseTimer, defaults=False):
 
 	# Read out justplay
 	baseTimer.justplay = 0 if baseTimer.always_zap else int(element.get("justplay", 0))
-	baseTimer.setEndtime = int(element.get("setEndtime", 1))
+	if hasattr(config.recording, "zap_has_endtime") and not baseTimer.justplay:  # There is no setting, use openatv setting
+		baseTimer.setEndtime = int(config.recording.zap_has_endtime.value)
+	else:
+		baseTimer.setEndtime = int(element.get("setEndtime", 1))
 
 	# Read out avoidDuplicateDescription
 	baseTimer.avoidDuplicateDescription = int(element.get("avoidDuplicateDescription", 0))
